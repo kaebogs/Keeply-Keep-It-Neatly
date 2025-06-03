@@ -1,3 +1,4 @@
+import { db } from "@/config/firebase";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import {
@@ -27,11 +28,10 @@ import {
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AddTaskModal from "../../components/home/AddTaskModal";
-import PomodoroTimerModal from "../../components/home/PomodoroTimerModal";
-import ProfileModal from "../../components/profile/ProfileModal";
-import { db } from "../../config/firebase";
-import { useAuth } from "../../contexts/AuthContext";
+import AddTaskModal from "@/components/home/AddTaskModal";
+import PomodoroTimerModal from "@/components/home/PomodoroTimerModal";
+import ProfileModal from "@/components/profile/ProfileModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 const { width, height } = Dimensions.get("window");
 
