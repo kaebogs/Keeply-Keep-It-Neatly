@@ -8,8 +8,8 @@ const Index = () => {
 
   useEffect(() => {
     setTimeout(() => {
-      //router.push("/(auth)/welcome");
-      router.push("/(tabs)/home"); // Navigate to the home screen after 2 seconds
+      router.push("/(auth)/welcome");
+      //router.push("/(tabs)/home"); // Navigate to the home screen after 2 seconds
     }, 5000); // Navigate to the welcome screen after 2 seconds
   }, [router]);
 

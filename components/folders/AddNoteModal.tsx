@@ -1,5 +1,6 @@
 //Working
 
+import { AddNoteModalProps } from "@/types/props";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -13,21 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-interface AddNoteModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onAddNote: (note: {
-    title: string;
-    description: string;
-    date: string;
-  }) => void;
-  note?: {
-    title: string;
-    description: string;
-    date: string;
-  };
-}
 
 const AddNoteModal = ({
   visible,
@@ -50,6 +36,7 @@ const AddNoteModal = ({
   // Animate in/out when modal visibility changes
   useEffect(() => {
     if (visible) {
+      fadeAnim.setValue(0); // <-- Add this line
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 400,
@@ -189,7 +176,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.18)",
+    backgroundColor: "rgba(240,240,240,0.85)",
   },
   modalView: {
     width: "92%",

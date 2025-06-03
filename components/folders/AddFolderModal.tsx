@@ -1,5 +1,4 @@
-//Working
-
+import { AddFolderModalProps } from "@/types/props";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef, useState } from "react";
 import {
@@ -14,13 +13,6 @@ import {
   TouchableOpacity,
 } from "react-native";
 
-interface AddFolderModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onAddFolder: (folder: { title: string; description: string }) => void;
-  folder?: { title: string; description: string }; // <-- Accept folder prop for editing
-}
-
 const AddFolderModal = ({
   visible,
   onClose,
@@ -33,6 +25,7 @@ const AddFolderModal = ({
   );
   const [error, setError] = useState("");
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const [showModal, setShowModal] = useState(visible);
 
   // Prefill fields when editing, clear when adding
   useEffect(() => {
@@ -43,6 +36,8 @@ const AddFolderModal = ({
 
   useEffect(() => {
     if (visible) {
+      setShowModal(true);
+      fadeAnim.setValue(0);
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 400,
@@ -55,7 +50,7 @@ const AddFolderModal = ({
         duration: 250,
         useNativeDriver: true,
         easing: Easing.in(Easing.ease),
-      }).start();
+      }).start(() => setShowModal(false));
     }
   }, [visible, fadeAnim]);
 
@@ -78,11 +73,11 @@ const AddFolderModal = ({
     onClose();
   };
 
-  if (!visible) return null;
+  if (!showModal) return null;
 
   return (
     <Modal
-      visible={visible}
+      visible={showModal}
       transparent
       animationType="none"
       onRequestClose={handleClose}

@@ -1,26 +1,22 @@
-//Working
-
-import Checkbox from "expo-checkbox"; // Import Checkbox from expo-checkbox
+import { useAuth } from "@/contexts/AuthContext";
+import Checkbox from "expo-checkbox";
 import { useRouter } from "expo-router";
-import LottieView from "lottie-react-native"; // Import LottieView
+import LottieView from "lottie-react-native";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  KeyboardAvoidingView,
+  Dimensions,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
-// Try different import paths - adjust based on your actual file structure
-import { useAuth } from "../../contexts/AuthContext";
-// Alternative imports if the above doesn't work:
-// import { useAuth } from "@/contexts/AuthContext";
-// import { useAuth } from "@/context/AuthContext";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+
+const { width, height } = Dimensions.get("window");
 
 const Signup = () => {
   const [username, setUsername] = useState("");
@@ -32,22 +28,14 @@ const Signup = () => {
   const authContext = useAuth();
 
   const handleSignup = async () => {
-    console.log("Submit button pressed");
-
-    // Check if signup function exists
     if (!authContext || typeof authContext.signup !== "function") {
       Alert.alert(
         "Error",
         "Authentication service is not available. Please try again later."
       );
-      console.error(
-        "Auth context or signup function not available:",
-        authContext
-      );
       return;
     }
 
-    // Input validation
     if (!username.trim() || !email.trim() || !password.trim()) {
       Alert.alert("Sign Up", "Please fill in all fields.");
       return;
@@ -61,14 +49,12 @@ const Signup = () => {
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert("Sign Up", "Please enter a valid email address.");
       return;
     }
 
-    // Password validation (at least 6 characters)
     if (password.length < 6) {
       Alert.alert("Sign Up", "Password must be at least 6 characters long.");
       return;
@@ -77,18 +63,13 @@ const Signup = () => {
     setIsLoading(true);
 
     try {
-      // Use default profile URL
       const defaultProfileUrl =
         "https://ui-avatars.com/api/?name=" + encodeURIComponent(username);
 
-      // Register using auth context - changed from register to signup
       await authContext.signup(email, password, username, defaultProfileUrl);
-      console.log("User registered successfully");
 
-      // Navigate to home or login after successful registration
       router.replace("/(tabs)/home");
     } catch (error: any) {
-      console.error("Registration error:", error);
       Alert.alert(
         "Registration Error",
         error.message || "An unexpected error occurred. Please try again."
@@ -99,104 +80,92 @@ const Signup = () => {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    <KeyboardAwareScrollView
+      contentContainerStyle={styles.scrollContainer}
+      enableOnAndroid
+      extraScrollHeight={Platform.OS === "ios" ? 20 : 40}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Lottie Animation */}
-        <LottieView
-          source={require("../../assets/animations/login.json")} // Replace with your Lottie animation file
-          autoPlay
-          loop
-          style={styles.animation}
-        />
-        {/* Title */}
-        <Text style={styles.title}>Create an Account</Text>
-        <Text style={styles.subtitle}>
-          Create an account and take control today!
-        </Text>
+      <LottieView
+        source={require("../../assets/animations/login.json")}
+        autoPlay
+        loop
+        style={styles.animation}
+      />
+      <Text style={styles.title}>Create an Account</Text>
+      <Text style={styles.subtitle}>
+        Create an account and take control today!
+      </Text>
 
-        {/* Username Input */}
-        <TextInput
-          style={styles.input}
-          placeholder="Username"
-          placeholderTextColor="#aaa"
-          autoCapitalize="none"
-          value={username}
-          onChangeText={setUsername}
-          editable={!isLoading}
-        />
+      <TextInput
+        style={styles.input}
+        placeholder="Username"
+        placeholderTextColor="#aaa"
+        autoCapitalize="none"
+        value={username}
+        onChangeText={setUsername}
+        editable={!isLoading}
+      />
 
-        {/* Email Input */}
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#aaa"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
-          editable={!isLoading}
-        />
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        placeholderTextColor="#aaa"
+        keyboardType="email-address"
+        autoCapitalize="none"
+        value={email}
+        onChangeText={setEmail}
+        editable={!isLoading}
+      />
 
-        {/* Password Input */}
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#aaa"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-          editable={!isLoading}
-        />
+      <TextInput
+        style={styles.input}
+        placeholder="Password"
+        placeholderTextColor="#aaa"
+        secureTextEntry
+        value={password}
+        onChangeText={setPassword}
+        editable={!isLoading}
+      />
 
-        {/* Terms and Privacy Checkbox */}
-        <View style={styles.checkboxContainer}>
-          <Checkbox
-            value={isChecked}
-            onValueChange={setIsChecked}
-            color={isChecked ? "#F76A86" : undefined} // Change color when checked
-            style={styles.checkbox}
-            disabled={isLoading}
-          />
-          <Text style={styles.checkboxText}>
-            I agree to the <Text style={styles.link}>Terms</Text> and{" "}
-            <Text style={styles.link}>Privacy Policy</Text>
-          </Text>
-        </View>
-
-        {/* Signup Button */}
-        <TouchableOpacity
-          style={[styles.button, isLoading && styles.buttonDisabled]}
-          onPress={handleSignup}
+      <View style={styles.checkboxContainer}>
+        <Checkbox
+          value={isChecked}
+          onValueChange={setIsChecked}
+          color={isChecked ? "#F76A86" : undefined}
+          style={styles.checkbox}
           disabled={isLoading}
-          activeOpacity={0.9}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.buttonText}>Sign Up</Text>
-          )}
-        </TouchableOpacity>
+        />
+        <Text style={styles.checkboxText}>
+          I agree to the <Text style={styles.link}>Terms</Text> and{" "}
+          <Text style={styles.link}>Privacy Policy</Text>
+        </Text>
+      </View>
 
-        {/* Already Have an Account */}
-        <View style={styles.signInContainer}>
-          <Text style={styles.signInText}>Already have an account?</Text>
-          <TouchableOpacity
-            onPress={() => router.push("/(auth)/login")}
-            disabled={isLoading}
-          >
-            <Text style={styles.signInLink}> Sign In</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <TouchableOpacity
+        style={[styles.button, isLoading && styles.buttonDisabled]}
+        onPress={handleSignup}
+        disabled={isLoading}
+        activeOpacity={0.9}
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#fff" size="small" />
+        ) : (
+          <Text style={styles.buttonText}>Sign Up</Text>
+        )}
+      </TouchableOpacity>
+
+      <View style={styles.signInContainer}>
+        <Text style={styles.signInText}>Already have an account?</Text>
+        <TouchableOpacity
+          onPress={() => router.push("/(auth)/login")}
+          disabled={isLoading}
+        >
+          <Text style={styles.signInLink}> Sign In</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAwareScrollView>
   );
 };
 
@@ -211,51 +180,55 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
-    paddingBottom: 40, // Extra padding at bottom for keyboard
+    padding: width * 0.05,
+    paddingBottom: height * 0.05,
   },
   animation: {
-    width: 300, // Slightly smaller to fit better with keyboard
-    height: 300,
+    width: width * 0.7,
+    height: width * 0.7,
+    marginBottom: height * 0.02,
   },
   title: {
-    fontSize: 46,
+    fontSize: width * 0.08,
     fontWeight: "900",
     color: "#333",
-    marginTop: -20,
+    marginTop: -height * 0.02,
+    textAlign: "center",
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: width * 0.045,
     fontWeight: "500",
     color: "#666",
-    marginBottom: 30,
+    marginBottom: height * 0.03,
+    textAlign: "center",
   },
   input: {
     width: "100%",
-    height: 50,
+    height: height * 0.065,
     backgroundColor: "#fff",
     borderRadius: 8,
-    paddingHorizontal: 15,
-    fontSize: 16,
+    paddingHorizontal: width * 0.04,
+    fontSize: width * 0.045,
     color: "#333",
-    marginBottom: 15,
+    marginBottom: height * 0.018,
     borderWidth: 1,
     borderColor: "#000",
   },
   checkboxContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: height * 0.025,
     width: "100%",
   },
   checkbox: {
-    marginRight: 10,
-    width: 20,
-    height: 20,
+    marginRight: width * 0.025,
+    width: width * 0.055,
+    height: width * 0.055,
   },
   checkboxText: {
-    fontSize: 14,
+    fontSize: width * 0.037,
     color: "#666",
+    flexShrink: 1,
   },
   link: {
     color: "#F76A86",
@@ -263,12 +236,12 @@ const styles = StyleSheet.create({
   },
   button: {
     width: "100%",
-    height: 50,
+    height: height * 0.065,
     backgroundColor: "#F76A86",
     justifyContent: "center",
     alignItems: "center",
     borderRadius: 8,
-    marginBottom: 15,
+    marginBottom: height * 0.018,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -282,22 +255,22 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: width * 0.05,
     fontWeight: "bold",
   },
   signInContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: height * 0.012,
   },
   signInText: {
     color: "#666",
-    fontSize: 14,
+    fontSize: width * 0.037,
   },
   signInLink: {
     color: "#F76A86",
-    fontSize: 14,
+    fontSize: width * 0.037,
     fontWeight: "bold",
   },
 });

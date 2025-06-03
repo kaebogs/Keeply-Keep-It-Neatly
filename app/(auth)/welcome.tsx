@@ -1,10 +1,20 @@
 import { useRouter } from "expo-router";
 import LottieView from "lottie-react-native";
 import React, { useEffect, useRef } from "react";
-import { Animated, StyleSheet, Text, TouchableOpacity } from "react-native";
+import {
+  Animated,
+  Dimensions,
+  StyleSheet,
+  Text,
+  TextStyle,
+  TouchableOpacity,
+  ViewStyle,
+} from "react-native";
+
+const { width, height } = Dimensions.get("window");
 
 const Welcome = () => {
-  const router = useRouter(); // Use the router object for navigation
+  const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -60,48 +70,57 @@ const Welcome = () => {
 
 export default Welcome;
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create<{
+  container: ViewStyle;
+  signIn: ViewStyle;
+  signInText: TextStyle;
+  animation: ViewStyle;
+  title: TextStyle;
+  subtitle: TextStyle;
+  button: ViewStyle;
+  buttonText: TextStyle;
+}>({
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#fff",
-    padding: 20,
+    padding: width * 0.05,
   },
   signIn: {
     position: "absolute",
-    top: 90,
-    right: 30,
+    top: height * 0.08,
+    right: width * 0.07,
     zIndex: 10,
   },
   signInText: {
-    fontSize: 20,
+    fontSize: width * 0.05,
     color: "#F76A86",
     fontWeight: "800",
   },
   animation: {
-    width: 350,
-    height: 350,
-    marginBottom: 20,
+    width: width * 0.8,
+    height: width * 0.8,
+    marginBottom: height * 0.03,
   },
   title: {
-    fontSize: 28,
+    fontSize: width * 0.07,
     fontWeight: "bold",
     color: "#333",
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: height * 0.01,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: width * 0.04,
     color: "#666",
     textAlign: "center",
-    marginBottom: 30,
-    lineHeight: 22,
+    marginBottom: height * 0.04,
+    lineHeight: width * 0.055,
   },
   button: {
     backgroundColor: "#F76A86",
-    paddingVertical: 15,
-    paddingHorizontal: 50,
+    paddingVertical: height * 0.02,
+    paddingHorizontal: width * 0.18,
     borderRadius: 6,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
@@ -113,7 +132,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: width * 0.045,
     fontWeight: "bold",
     textAlign: "center",
     letterSpacing: 1.2,

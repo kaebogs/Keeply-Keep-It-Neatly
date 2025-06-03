@@ -1,5 +1,4 @@
-//Working
-
+import { AddTaskModalProps } from "@/types/props";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import React, { useEffect, useState } from "react";
@@ -13,24 +12,8 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  View,
 } from "react-native";
-
-interface AddTaskModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onAddTask: (task: {
-    title: string;
-    description: string;
-    deadline?: Date | null;
-    id?: string;
-  }) => void;
-  task?: {
-    id?: string;
-    title: string;
-    description: string;
-    deadline?: Date | null;
-  };
-}
 
 const AddTaskModal = ({
   visible,
@@ -44,6 +27,9 @@ const AddTaskModal = ({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [error, setError] = useState("");
+  const [tempPickerValue, setTempPickerValue] = useState<Date>(
+    deadline || new Date()
+  );
 
   // Animation state
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -51,9 +37,20 @@ const AddTaskModal = ({
   useEffect(() => {
     setTitle(task ? task.title : "");
     setDescription(task ? task.description : "");
-    setDeadline(task && task.deadline ? new Date(task.deadline) : null);
+    setDeadline(
+      task && task.deadline
+        ? typeof (task.deadline as any).toDate === "function"
+          ? (task.deadline as any).toDate()
+          : new Date(task.deadline)
+        : null
+    );
     setError("");
   }, [task, visible]);
+
+  // Keep tempPickerValue in sync with deadline
+  useEffect(() => {
+    setTempPickerValue(deadline || new Date());
+  }, [showDatePicker, showTimePicker, deadline]);
 
   // Animate in/out when modal visibility changes (slow fade)
   React.useEffect(() => {
@@ -116,6 +113,36 @@ const AddTaskModal = ({
     return `${date} • ${time}`;
   };
 
+  // --- Date and Time Picker Logic ---
+  const onIOSPickerChange = (_: any, selectedDate?: Date) => {
+    if (selectedDate) setTempPickerValue(selectedDate);
+  };
+
+  // For iOS: show a "Done" button to close the picker and set the value
+  const renderIOSPicker = (
+    mode: "date" | "time",
+    show: boolean,
+    onChange: (event: any, date?: Date) => void,
+    onDone: () => void
+  ) =>
+    show ? (
+      <View style={styles.iosPickerContainer}>
+        <DateTimePicker
+          value={tempPickerValue}
+          mode={mode}
+          display="spinner"
+          onChange={onChange}
+          minimumDate={mode === "date" ? new Date() : undefined}
+          textColor="#000"
+          style={{ backgroundColor: "#fff" }}
+        />
+        <TouchableOpacity onPress={onDone} style={styles.iosPickerDoneButton}>
+          <Text style={styles.iosPickerDoneText}>Done</Text>
+        </TouchableOpacity>
+      </View>
+    ) : null;
+
+  // For Android: handle picker change and close
   const onDateChange = (_: any, selectedDate?: Date) => {
     setShowDatePicker(false);
     if (selectedDate) {
@@ -123,7 +150,6 @@ const AddTaskModal = ({
       const newDate = new Date(selectedDate);
       newDate.setHours(prev.getHours(), prev.getMinutes());
       setDeadline(newDate);
-      setTimeout(() => setShowTimePicker(true), 200);
     }
   };
 
@@ -134,6 +160,26 @@ const AddTaskModal = ({
       newDate.setHours(selectedTime.getHours(), selectedTime.getMinutes());
       setDeadline(newDate);
     }
+  };
+
+  // iOS Done handlers
+  const onIOSDateDone = () => {
+    setDeadline((prev) => {
+      const d = new Date(tempPickerValue);
+      // preserve time if already set
+      if (prev) d.setHours(prev.getHours(), prev.getMinutes());
+      return d;
+    });
+    setShowDatePicker(false);
+  };
+
+  const onIOSTimeDone = () => {
+    setDeadline((prev) => {
+      const d = new Date(prev || new Date());
+      d.setHours(tempPickerValue.getHours(), tempPickerValue.getMinutes());
+      return d;
+    });
+    setShowTimePicker(false);
   };
 
   return (
@@ -177,7 +223,10 @@ const AddTaskModal = ({
           />
           <TouchableOpacity
             style={styles.deadlineButton}
-            onPress={() => setShowDatePicker(true)}
+            onPress={() => {
+              setTempPickerValue(deadline || new Date());
+              setShowDatePicker(true);
+            }}
             activeOpacity={0.8}
           >
             <Ionicons name="calendar-outline" size={20} color="#6C63FF" />
@@ -185,34 +234,62 @@ const AddTaskModal = ({
               {getDeadlineDisplay()}
             </Text>
             {deadline && (
-              <TouchableOpacity
-                onPress={() => setDeadline(null)}
-                style={{ marginLeft: 8 }}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons name="close-circle" size={18} color="#B0B0B0" />
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  onPress={() => setDeadline(null)}
+                  style={{ marginLeft: 8 }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close-circle" size={18} color="#B0B0B0" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    setTempPickerValue(deadline || new Date());
+                    setShowTimePicker(true);
+                  }}
+                  style={{ marginLeft: 8 }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="time-outline" size={18} color="#6C63FF" />
+                </TouchableOpacity>
+              </>
             )}
           </TouchableOpacity>
-          {showDatePicker && (
-            <DateTimePicker
-              value={deadline || new Date()}
-              mode="date"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              onChange={onDateChange}
-              minimumDate={new Date()}
-              textColor="#000"
-            />
-          )}
-          {showTimePicker && (
-            <DateTimePicker
-              value={deadline || new Date()}
-              mode="time"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              onChange={onTimeChange}
-              textColor="#000"
-            />
-          )}
+          {/* Date Picker */}
+          {Platform.OS === "ios"
+            ? renderIOSPicker(
+                "date",
+                showDatePicker,
+                onIOSPickerChange,
+                onIOSDateDone
+              )
+            : showDatePicker && (
+                <DateTimePicker
+                  value={deadline || new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={onDateChange}
+                  minimumDate={new Date()}
+                  textColor="#000"
+                />
+              )}
+          {/* Time Picker */}
+          {Platform.OS === "ios"
+            ? renderIOSPicker(
+                "time",
+                showTimePicker,
+                onIOSPickerChange,
+                onIOSTimeDone
+              )
+            : showTimePicker && (
+                <DateTimePicker
+                  value={deadline || new Date()}
+                  mode="time"
+                  display="default"
+                  onChange={onTimeChange}
+                  textColor="#000"
+                />
+              )}
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <TouchableOpacity
             style={styles.addButton}
@@ -322,5 +399,23 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     alignSelf: "center",
     fontWeight: "600",
+  },
+  iosPickerContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    marginBottom: 16,
+    marginTop: -8,
+    overflow: "hidden",
+    alignItems: "stretch",
+  },
+  iosPickerDoneButton: {
+    alignSelf: "flex-end",
+    padding: 12,
+    paddingRight: 18,
+  },
+  iosPickerDoneText: {
+    color: "#6C63FF",
+    fontWeight: "700",
+    fontSize: 16,
   },
 });

@@ -1,6 +1,5 @@
-//Working
-
 import { Ionicons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 import {
   addDoc,
   collection,
@@ -18,9 +17,8 @@ import {
   Alert,
   Dimensions,
   Image,
-  SafeAreaView,
+  Modal,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TextInput,
@@ -28,13 +26,14 @@ import {
   View,
 } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
-import Animated, { FadeIn } from "react-native-reanimated";
-import AddTaskModal from "../../components/AddTaskModal";
-import PomodoroTimerModal from "../../components/PomodoroTimerModal";
+import { SafeAreaView } from "react-native-safe-area-context";
+import AddTaskModal from "../../components/home/AddTaskModal";
+import PomodoroTimerModal from "../../components/home/PomodoroTimerModal";
+import ProfileModal from "../../components/profile/ProfileModal";
 import { db } from "../../config/firebase";
 import { useAuth } from "../../contexts/AuthContext";
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
+const { width, height } = Dimensions.get("window");
 
 interface Task {
   id: string;
@@ -56,6 +55,7 @@ const Home = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isPomodoroVisible, setIsPomodoroVisible] = useState(false);
+  const [isProfileModalVisible, setProfileModalVisible] = useState(false);
 
   // --- Task Streak Logic ---
   const [taskStreak, setTaskStreak] = useState(0);
@@ -105,30 +105,33 @@ const Home = () => {
       .filter((t) => t.completed && t.updatedAt)
       .map((t) => {
         const date = t.updatedAt?.toDate?.() || t.updatedAt;
-        return date ? date.toISOString().slice(0, 10) : null;
+        return date ? new Date(date) : null;
       })
-      .filter(Boolean);
+      .filter(Boolean)
+      .sort((a, b) => (b as Date).getTime() - (a as Date).getTime()) as Date[];
 
-    // Remove duplicates and sort descending
-    const uniqueDates = Array.from(new Set(completedDates)).sort((a, b) =>
-      b.localeCompare(a)
-    );
+    if (completedDates.length === 0) {
+      setTaskStreak(0);
+      return;
+    }
+
+    const now = new Date();
+    const msInDay = 24 * 60 * 60 * 1000;
+    const lastCompleted = completedDates[0];
+    if (now.getTime() - lastCompleted.getTime() > msInDay) {
+      setTaskStreak(0);
+      return;
+    }
 
     // Calculate streak
-    let streak = 0;
-    let current = new Date();
-    for (let i = 0; i < uniqueDates.length; i++) {
-      const dateStr = uniqueDates[i];
-      const date = new Date(dateStr);
-      if (
-        date.getFullYear() === current.getFullYear() &&
-        date.getMonth() === current.getMonth() &&
-        date.getDate() === current.getDate()
-      ) {
+    let streak = 1;
+    let prev = lastCompleted;
+    for (let i = 1; i < completedDates.length; i++) {
+      const diff = prev.getTime() - completedDates[i].getTime();
+      if (diff > msInDay + 1000 * 60 * 60) break; // More than 24 hours gap
+      if (diff >= msInDay - 1000 * 60 * 60) {
         streak++;
-        current.setDate(current.getDate() - 1);
-      } else {
-        break;
+        prev = completedDates[i];
       }
     }
     setTaskStreak(streak);
@@ -244,47 +247,67 @@ const Home = () => {
   // UI
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar style="dark" />
       <ScrollView
-        showsVerticalScrollIndicator={false}
         style={styles.scrollContainer}
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: height * 0.12,
+        }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.appName}>keeply.</Text>
-          <Animated.View
-            entering={FadeIn.duration(800)}
-            style={styles.welcomeContainer}
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={() => setProfileModalVisible(true)}
+            activeOpacity={0.7}
           >
+            <Ionicons
+              name="person-circle-outline"
+              size={width * 0.09}
+              color="#F76A86"
+            />
+          </TouchableOpacity>
+          <View style={styles.welcomeContainer}>
             <Text style={styles.welcomeText}>Hello, {username}</Text>
             <Text style={styles.dateText}>{todayDate}</Text>
-          </Animated.View>
+          </View>
         </View>
 
         {/* Statistics Cards */}
         <View style={styles.statsContainer}>
           <TouchableOpacity style={styles.statsCard}>
-            <Ionicons name="checkmark-done-circle" size={28} color="#F76A86" />
+            <Ionicons
+              name="checkmark-done-circle"
+              size={width * 0.07}
+              color="#F76A86"
+            />
             <Text style={styles.statsValue}>{completedCount}</Text>
             <Text style={styles.statsLabel}>Completed</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statsCard}>
-            <Ionicons name="list-circle" size={28} color="#F76A86" />
+            <Ionicons name="list-circle" size={width * 0.07} color="#F76A86" />
             <Text style={styles.statsValue}>{tasks.length}</Text>
             <Text style={styles.statsLabel}>All Tasks</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.statsCard}>
-            <Ionicons name="trending-up" size={28} color="#F76A86" />
+            <Ionicons name="trending-up" size={width * 0.07} color="#F76A86" />
             <Text style={styles.statsValue}>{progress}%</Text>
             <Text style={styles.statsLabel}>Progress</Text>
           </TouchableOpacity>
         </View>
-
         {/* Mini Stat Cards for Streak and Pomodoro */}
         <View style={styles.miniStatsContainer}>
-          <View style={[styles.miniStatCard, { marginRight: 12 }]}>
-            <Ionicons name="flame-outline" size={20} color="#F76A86" />
-            <View style={{ marginLeft: 8 }}>
+          <View style={[styles.miniStatCard, { marginRight: width * 0.03 }]}>
+            <Ionicons
+              name="flame-outline"
+              size={width * 0.05}
+              color="#F76A86"
+            />
+            <View style={{ marginLeft: width * 0.02 }}>
               <Text style={styles.miniStatValue}>{taskStreak} Streak</Text>
             </View>
           </View>
@@ -292,18 +315,21 @@ const Home = () => {
             style={styles.miniStatCard}
             onPress={handlePomodoroPress}
           >
-            <Ionicons name="timer-outline" size={20} color="#F76A86" />
-            <View style={{ marginLeft: 8 }}>
+            <Ionicons
+              name="timer-outline"
+              size={width * 0.05}
+              color="#F76A86"
+            />
+            <View style={{ marginLeft: width * 0.02 }}>
               <Text style={styles.miniStatValue}>Pomodoro Timer</Text>
             </View>
           </TouchableOpacity>
         </View>
-
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Ionicons
             name="search"
-            size={20}
+            size={width * 0.05}
             color="#666"
             style={styles.searchIcon}
           />
@@ -315,7 +341,6 @@ const Home = () => {
             onChangeText={setSearchQuery}
           />
         </View>
-
         {/* Tab Navigation */}
         <View style={styles.tabContainer}>
           {["To Do list", "Ongoing", "Completed"].map((tab) => (
@@ -338,7 +363,6 @@ const Home = () => {
             </TouchableOpacity>
           ))}
         </View>
-
         {/* Progress Bar */}
         <View style={styles.progressContainer}>
           <View style={styles.progressBarBg}>
@@ -346,7 +370,6 @@ const Home = () => {
           </View>
           <Text style={styles.progressText}>{progress}%</Text>
         </View>
-
         {/* Task List */}
         <View style={styles.taskListContainer}>
           {filteredTasks.length > 0 ? (
@@ -362,14 +385,22 @@ const Home = () => {
                         setIsModalVisible(true);
                       }}
                     >
-                      <Ionicons name="create-outline" size={22} color="#fff" />
+                      <Ionicons
+                        name="create-outline"
+                        size={width * 0.055}
+                        color="#fff"
+                      />
                       <Text style={styles.swipeActionTextRect}>Edit</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.swipeActionRect, styles.deleteActionRect]}
                       onPress={() => handleDeleteTask(task)}
                     >
-                      <Ionicons name="trash-outline" size={22} color="#fff" />
+                      <Ionicons
+                        name="trash-outline"
+                        size={width * 0.055}
+                        color="#fff"
+                      />
                       <Text style={styles.swipeActionTextRect}>Delete</Text>
                     </TouchableOpacity>
                   </View>
@@ -382,13 +413,14 @@ const Home = () => {
                   ]}
                   onLongPress={() => handleDeleteTask(task)}
                 >
-                  <View style={{ flex: 1 }}>
+                  <View style={styles.taskDetailsContainer}>
                     <Text
                       style={[
                         styles.taskTitle,
                         task.completed && styles.completedTaskText,
                       ]}
                       numberOfLines={1}
+                      ellipsizeMode="tail"
                     >
                       {task.title}
                     </Text>
@@ -398,13 +430,18 @@ const Home = () => {
                           styles.taskDesc,
                           task.completed && styles.completedTaskText,
                         ]}
-                        numberOfLines={2}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
                       >
                         {task.description}
                       </Text>
                     ) : null}
                     {task.deadline ? (
-                      <Text style={styles.taskDeadline}>
+                      <Text
+                        style={styles.taskDeadline}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                      >
                         {(() => {
                           let d;
                           if (
@@ -444,7 +481,11 @@ const Home = () => {
                       ]}
                     >
                       {task.completed && (
-                        <Ionicons name="checkmark" size={16} color="#fff" />
+                        <Ionicons
+                          name="checkmark"
+                          size={width * 0.04}
+                          color="#fff"
+                        />
                       )}
                     </View>
                   </TouchableOpacity>
@@ -455,7 +496,7 @@ const Home = () => {
             <View style={styles.emptyState}>
               <Image
                 source={require("../../assets/images/taskllist.png")}
-                style={{ width: 85, height: 85 }}
+                style={{ width: width * 0.23, height: width * 0.23 }}
                 resizeMode="contain"
               />
               <Text style={styles.emptyStateText}>No tasks found</Text>
@@ -466,6 +507,30 @@ const Home = () => {
           )}
         </View>
       </ScrollView>
+
+      {/* Profile Modal */}
+      <Modal
+        visible={isProfileModalVisible}
+        animationType="slide"
+        onRequestClose={() => setProfileModalVisible(false)}
+      >
+        <ProfileModal />
+        <TouchableOpacity
+          style={{
+            position: "absolute",
+            top: height * 0.05,
+            right: width * 0.05,
+            zIndex: 10,
+            backgroundColor: "#fff",
+            borderRadius: 20,
+            padding: width * 0.015,
+            elevation: 4,
+          }}
+          onPress={() => setProfileModalVisible(false)}
+        >
+          <Ionicons name="close" size={width * 0.07} color="#333" />
+        </TouchableOpacity>
+      </Modal>
 
       <AddTaskModal
         visible={isModalVisible}
@@ -499,7 +564,7 @@ const Home = () => {
           setIsModalVisible(true);
         }}
       >
-        <Ionicons name="add" size={30} color="#fff" />
+        <Ionicons name="add" size={width * 0.08} color="#fff" />
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -514,43 +579,50 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flex: 1,
-    paddingHorizontal: 25,
-    paddingTop: 20,
+    paddingHorizontal: width * 0.06,
+    paddingTop: height * 0.025,
   },
   header: {
-    marginBottom: 25,
+    marginBottom: height * 0.03,
+  },
+  profileButton: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    padding: width * 0.01,
+    zIndex: 2,
   },
   appName: {
-    fontSize: 30,
+    fontSize: width * 0.08,
     fontWeight: "700",
     color: "#333",
-    marginBottom: 5,
+    marginBottom: height * 0.006,
   },
   welcomeContainer: {
-    marginTop: 5,
+    marginTop: height * 0.006,
   },
   welcomeText: {
-    fontSize: 30,
+    fontSize: width * 0.08,
     fontWeight: "900",
     color: "#333",
   },
   dateText: {
-    fontSize: 12,
+    fontSize: width * 0.032,
     color: "#666",
-    marginTop: 2,
+    marginTop: height * 0.002,
   },
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: height * 0.025,
   },
   statsCard: {
     backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
+    borderRadius: width * 0.03,
+    padding: width * 0.04,
     alignItems: "center",
     justifyContent: "center",
-    width: (SCREEN_WIDTH - 60) / 3,
+    width: (width - width * 0.18) / 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -560,30 +632,30 @@ const styles = StyleSheet.create({
     borderColor: "#f0f0f0",
   },
   statsValue: {
-    fontSize: 22,
+    fontSize: width * 0.055,
     fontWeight: "800",
     color: "#333",
-    marginTop: 5,
+    marginTop: height * 0.006,
   },
   statsLabel: {
-    fontSize: 12,
+    fontSize: width * 0.032,
     color: "#666",
-    marginTop: 2,
+    marginTop: height * 0.002,
   },
   miniStatsContainer: {
     flexDirection: "row",
     justifyContent: "flex-start",
-    marginBottom: 18,
-    gap: 12,
+    marginBottom: height * 0.022,
+    gap: width * 0.03,
   },
   miniStatCard: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    borderRadius: width * 0.02,
+    paddingVertical: height * 0.01,
+    paddingHorizontal: width * 0.04,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.07,
@@ -594,67 +666,44 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   miniStatValue: {
-    fontSize: 16,
+    fontSize: width * 0.04,
     fontWeight: "700",
     color: "#333",
     marginBottom: 0,
     marginRight: 0,
   },
-  featureButtonsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  featureButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f0f0f0",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    width: (SCREEN_WIDTH - 50) / 2,
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#ddd",
-  },
-  featureButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginLeft: 8,
-    color: "#333",
-  },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f5f5f5",
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 20,
+    borderRadius: width * 0.025,
+    paddingHorizontal: width * 0.04,
+    marginBottom: height * 0.025,
     borderWidth: 1,
     borderColor: "#eee",
   },
   searchIcon: {
-    marginRight: 10,
+    marginRight: width * 0.025,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 12,
-    fontSize: 16,
+    paddingVertical: height * 0.015,
+    fontSize: width * 0.04,
     color: "#333",
   },
   tabContainer: {
     flexDirection: "row",
     backgroundColor: "#f0f0f0",
-    borderRadius: 10,
-    marginBottom: 15,
-    padding: 3,
+    borderRadius: width * 0.025,
+    marginBottom: height * 0.018,
+    padding: width * 0.008,
   },
   tabButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: height * 0.018,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 8,
+    borderRadius: width * 0.02,
   },
   activeTabButton: {
     backgroundColor: "#fff",
@@ -665,7 +714,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tabText: {
-    fontSize: 14,
+    fontSize: width * 0.037,
     fontWeight: "600",
     color: "#666",
   },
@@ -676,36 +725,36 @@ const styles = StyleSheet.create({
   progressContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: height * 0.025,
   },
   progressBarBg: {
     flex: 1,
     backgroundColor: "#f0f0f0",
-    height: 10,
-    borderRadius: 5,
+    height: height * 0.013,
+    borderRadius: height * 0.0065,
     overflow: "hidden",
-    marginRight: 10,
+    marginRight: width * 0.025,
   },
   progressBarFill: {
     height: "100%",
     backgroundColor: "#F76A86",
-    borderRadius: 5,
+    borderRadius: height * 0.0065,
   },
   progressText: {
-    fontSize: 14,
+    fontSize: width * 0.037,
     fontWeight: "700",
     color: "#F76A86",
   },
   taskListContainer: {
-    marginBottom: 80,
+    marginBottom: height * 0.1,
   },
   taskItem: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#C2EFB9",
-    padding: 16,
-    marginBottom: 10,
+    backgroundColor: "#FFE0DE",
+    paddingHorizontal: width * 0.045, // Only horizontal padding
+    marginBottom: height * 0.012,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -713,37 +762,44 @@ const styles = StyleSheet.create({
     elevation: 2,
     borderWidth: 1,
     borderColor: "#333",
+    height: width * 0.16, // Fixed height for alignment
+    overflow: "hidden", // Ensures border radius is respected
   },
-  completedTask: {
-    backgroundColor: "#FFE0DE",
+  taskDetailsContainer: {
+    flex: 1,
+    height: "100%",
+    justifyContent: "center",
+    marginBottom: 2, // or use marginBottom on each text if you want more control
   },
   taskTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    flex: 1,
+    fontSize: width * 0.042,
+    fontWeight: "700",
     color: "#333",
+    marginBottom: 1,
+  },
+  taskDesc: {
+    fontSize: width * 0.034,
+    color: "#555",
+    marginBottom: 1,
+  },
+  taskDeadline: {
+    fontSize: width * 0.03,
+    color: "#F76A86",
+  },
+  completedTask: {
+    backgroundColor: "#C2EFB9",
   },
   completedTaskText: {
     textDecorationLine: "line-through",
     color: "#999",
   },
-  taskDesc: {
-    fontSize: 13,
-    color: "#555",
-    marginTop: 2,
-  },
-  taskDeadline: {
-    fontSize: 12,
-    color: "#F76A86",
-    marginTop: 2,
-  },
   checkboxContainer: {
-    marginLeft: 10,
+    marginLeft: width * 0.025,
   },
   checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
+    width: width * 0.06,
+    height: width * 0.06,
+    borderRadius: width * 0.015,
     borderWidth: 2,
     borderColor: "#ddd",
     justifyContent: "center",
@@ -757,18 +813,19 @@ const styles = StyleSheet.create({
   swipeActionsContainer: {
     flexDirection: "row",
     alignItems: "center",
-    height: "100%",
+    height: width * 0.16, // Match taskItem height
     margin: 0,
     padding: 0,
   },
   swipeActionRect: {
-    width: 64,
-    height: "88.5%",
+    width: width * 0.16,
+    height: width * 0.16, // Match taskItem height
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: -10,
+    marginTop: 0, // Remove negative margin
     padding: 0,
+    borderRadius: 0, // Let parent handle rounding
   },
   editActionRect: {
     backgroundColor: "#4CAF50",
@@ -776,44 +833,60 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: "#333",
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+    height: width * 0.16, // Ensure same height
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   deleteActionRect: {
     backgroundColor: "#F76A86",
-    borderTopRightRadius: 10,
-    borderBottomRightRadius: 10,
+    borderTopRightRadius: width * 0.025,
+    borderBottomRightRadius: width * 0.025,
     borderRightWidth: 1,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: "#333",
+    height: width * 0.16, // Ensure same height
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   swipeActionTextRect: {
     color: "#fff",
-    fontSize: 13,
+    fontSize: width * 0.034,
     fontWeight: "600",
     marginTop: 2,
   },
   emptyState: {
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 40,
+    paddingVertical: height * 0.05,
   },
   emptyStateText: {
-    fontSize: 18,
+    fontSize: width * 0.045,
     fontWeight: "700",
     color: "#999",
   },
   emptyStateSubtext: {
-    fontSize: 14,
+    fontSize: width * 0.035,
     color: "#999",
-    marginTop: 5,
+    marginTop: height * 0.006,
   },
   addButton: {
     position: "absolute",
-    right: 25,
-    bottom: 25,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    right: width * 0.06,
+    bottom: height * 0.04,
+    width: width * 0.16,
+    height: width * 0.16,
+    borderRadius: width * 0.08,
     backgroundColor: "#F76A86",
     justifyContent: "center",
     alignItems: "center",

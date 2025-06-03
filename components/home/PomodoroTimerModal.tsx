@@ -1,13 +1,9 @@
 //Working
 
+import { PomodoroTimerModalProps } from "@/types/props";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useRef, useState } from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
-interface PomodoroTimerModalProps {
-  visible: boolean;
-  onClose: () => void;
-}
 
 const WORK_DURATION = 25 * 60; // 25 minutes in seconds
 const BREAK_DURATION = 5 * 60; // 5 minutes in seconds
