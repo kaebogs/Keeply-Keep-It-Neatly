@@ -1,6 +1,6 @@
 # Keeply – Keep It Neatly 🧠📋
 
-**Keeply** is a mobile productivity and wellness app designed to help users manage their tasks, stay focused, and maintain mental clarity through minimalist design and supportive features like Pomodoro timers, note taking, to-do lists and expense tracking.
+**Keeply** is a mobile productivity app designed to help users manage their tasks, stay focused, and maintain mental clarity through minimalist design and supportive features like Pomodoro timers, note taking, to-do lists and expense tracking.
 
 ---
 
