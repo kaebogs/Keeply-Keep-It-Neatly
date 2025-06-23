@@ -1,50 +1,36 @@
-# Welcome to your Expo app 👋
+# Keeply – Keep It Neatly 🧠📋
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Keeply** is a mobile productivity and wellness app designed to help users manage their tasks, stay focused, and maintain mental clarity through minimalist design and supportive features like Pomodoro timers, note taking, to-do lists and expense tracking.
 
-## Get started
+---
 
-1. Install dependencies
+## ✨ Features
 
-   ```bash
-   npm install
-   ```
+- ✅ **Task Manager** – Organize your to-dos with categories and deadlines.
+- ⏱️ **Pomodoro Timer** – Boost focus using the Pomodoro productivity method.
+- 📚 **Library** – Save and manage helpful resources, articles, and motivational content.
+- 💸 **Expense Tracker** – Monitor daily spending and track your budgeting habits.
+- 📅 **Schedule Plotter** – Plan and visualize your day or week with a simple calendar interface.
+- 📊 **Productivity Tracker** – Visualize progress and daily accomplishments.
+- 🎨 **Clean & Minimal UI** – Focused, distraction-free interface built with users in mind.
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## 🛠️ Tech Stack
 
-In the output, you'll find options to open the app in a
+- **Front-End**: React Native (Expo)
+- **Languages**: TypeScript, JavaScript
+- **UI/UX Design**: Figma
+- **State Management**: Context API / React Hooks  
+- **Backend**: Firebase Authentication
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
-
-When you're ready, run:
+## 📦 Installation
 
 ```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+git clone https://github.com/kaebogs/Keeply-Keep-It-Neatly.git
+cd Keeply-Keep-It-Neatly
+npm install
+npx expo start
